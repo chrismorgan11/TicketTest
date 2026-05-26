@@ -1,0 +1,6 @@
+"Source","Ticket","Date","Details"
+service now,RITM0000010759952,03-31-2026,ewaste pickup for loose gear in adc cage
+dell,224642161,04-01-2026,uscdcpwr02 is getting NTP out of sync
+databank,2551809,04-02-2026,check uscdcrbu03 for failed power supply
+superna,75157,04-03-2026,spn rescan causing cpu performance issues
+cdc,2556062,04-06-2026,power drain uscdcrbu03

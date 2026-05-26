@@ -1,0 +1,29 @@
+{
+  "name": "ticket-management-system",
+  "version": "1.0.0",
+  "description": "Ticket management system with database backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node migrate.js",
+    "dev": "node server.js",
+    "install-service": "node install-service.js",
+    "uninstall-service": "node uninstall-service.js"
+  },
+  "keywords": [
+    "tickets",
+    "management",
+    "database"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "mssql": "^11.0.1",
+    "msnodesqlv8": "^4.3.1",
+    "node-windows": "^1.0.0-beta.8"
+  }
+}
