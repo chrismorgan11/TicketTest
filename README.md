@@ -1,174 +1,152 @@
 # Ticket Management System
 
-A full-stack ticket tracking application with a Node.js/Express backend, SQLite database, and modern web interface.
+A full-stack ticket tracking application with a Node.js/Express backend, SQL Server Express database, and modern web interface.
 
 ## Features
 
-- Create, view, and delete support tickets
+- Create, view, and edit support tickets
+- Filter tickets by status (Open / Closed) and sort by status column
 - Track tickets from multiple sources (ServiceNow, Dell, Databank, Superna, CDC, etc.)
 - Real-time statistics dashboard
 - Export tickets to CSV
-- Persistent SQLite database storage
-- RESTful API for integration
-- Clean, responsive UI
+- Runs as a Windows service with automatic startup on reboot
+- RESTful API
 
 ## Tech Stack
 
 - **Backend**: Node.js, Express.js
-- **Database**: SQLite3
+- **Database**: SQL Server Express (Windows Authentication via ODBC Driver 17)
 - **Frontend**: HTML, CSS, JavaScript (Vanilla)
-- **API**: RESTful endpoints
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/)
+- [SQL Server Express](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) (default instance name: `SQLEXPRESS`)
+- ODBC Driver 17 for SQL Server (included with SSMS, or install separately)
 
 ## Installation
 
-1. **Install Node.js** (if not already installed)
-   - Download from [nodejs.org](https://nodejs.org/)
+1. **Create the database:**
+   ```bash
+   sqlcmd -S localhost\SQLEXPRESS -E -Q "CREATE DATABASE TicketManagement"
+   ```
 
 2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Migrate existing data** (optional - imports tickets.csv into database):
+3. **Configure connection** (optional — defaults work for a standard local install):
+   Edit `.env` if your instance name or database name differs:
+   ```
+   DB_SERVER=localhost\SQLEXPRESS
+   DB_NAME=TicketManagement
+   PORT=3000
+   ```
+
+4. **Migrate existing CSV data** (optional):
    ```bash
    npm run migrate
    ```
 
-4. **Start the server:**
+5. **Start the server:**
    ```bash
    npm start
    ```
 
-5. **Access the application:**
-   - Open your browser and navigate to `http://localhost:3000`
+6. Open `http://localhost:3000`
 
 ## Running as a Windows Service
 
-To run the application as a Windows service (auto-start on reboot):
+The app can run as a Windows service that starts automatically on reboot.
 
-**Install as a Windows service:**
+**One-time: grant the service account access to SQL Server:**
+```bash
+sqlcmd -S localhost\SQLEXPRESS -E -Q "
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'NT AUTHORITY\SYSTEM')
+    CREATE LOGIN [NT AUTHORITY\SYSTEM] FROM WINDOWS;
+USE TicketManagement;
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'NT AUTHORITY\SYSTEM')
+    CREATE USER [NT AUTHORITY\SYSTEM] FOR LOGIN [NT AUTHORITY\SYSTEM];
+ALTER ROLE db_owner ADD MEMBER [NT AUTHORITY\SYSTEM];"
+```
+
+**Install the service** (requires administrator privileges):
 ```bash
 npm run install-service
 ```
-*Note: Requires administrator privileges. Right-click Command Prompt or PowerShell and select "Run as administrator"*
 
 **Uninstall the service:**
 ```bash
 npm run uninstall-service
 ```
 
-**Benefits of running as a service:**
-- Automatically starts on system reboot
-- Runs in the background without a terminal window
-- Automatically restarts if it crashes
-- Can be managed through Windows Services (services.msc)
-
-**Managing the service:**
-- Open Windows Services: Press `Win + R`, type `services.msc`, and press Enter
-- Find "Ticket Management System" in the list
-- Right-click to Start, Stop, Restart, or configure the service
+Manage via Windows Services (`services.msc`) — service name: **Ticket Management System**.
+Logs are written to `daemon\ticketmanagementsystem.out.log` and `daemon\ticketmanagementsystem.err.log`.
 
 ## Usage
 
 ### Web Interface
 
-1. Open `http://localhost:3000` in your browser
-2. Use the form to add new tickets:
-   - **Source**: The system that generated the ticket (automatically converted to lowercase)
-   - **Ticket Number**: The ticket identifier
-   - **Date**: Date of the ticket
-   - **Details**: Description of the issue or request
-3. View all tickets in the table below
-4. Click "Delete" to remove a ticket (with confirmation)
-5. Click "Export to CSV" to download all tickets as a CSV file
-6. Click "Refresh" to reload the data from the database
+1. Open `http://localhost:3000`
+2. Add tickets using the form (source is auto-lowercased)
+3. Click **Edit** on any row to update it in the form — submit saves the changes
+4. Use the **All / Open / Closed** filter buttons to narrow the ticket list
+5. Click the **Status** column header to sort by status
+6. Click **Export to CSV** to download all tickets
 
 ### API Endpoints
 
-#### Get all tickets
-```bash
-GET /api/tickets
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tickets` | Get all tickets |
+| GET | `/api/tickets/:id` | Get a single ticket |
+| POST | `/api/tickets` | Create a ticket |
+| PUT | `/api/tickets/:id` | Update a ticket |
+| DELETE | `/api/tickets/:id` | Delete a ticket |
+| GET | `/api/stats` | Total tickets and unique sources |
+| GET | `/api/export` | Download all tickets as CSV |
 
-#### Get a single ticket
-```bash
-GET /api/tickets/:id
-```
-
-#### Create a new ticket
-```bash
-POST /api/tickets
-Content-Type: application/json
-
+**Request body for POST / PUT:**
+```json
 {
   "source": "service now",
   "ticket": "RITM0000010759952",
   "date": "03-31-2026",
-  "details": "Issue description"
+  "details": "Issue description",
+  "status": "Open"
 }
-```
-
-#### Update a ticket
-```bash
-PUT /api/tickets/:id
-Content-Type: application/json
-
-{
-  "source": "dell",
-  "ticket": "224642161",
-  "date": "04-01-2026",
-  "details": "Updated description"
-}
-```
-
-#### Delete a ticket
-```bash
-DELETE /api/tickets/:id
-```
-
-#### Get statistics
-```bash
-GET /api/stats
-```
-
-#### Export to CSV
-```bash
-GET /api/export
 ```
 
 ## Project Structure
 
 ```
 tickets/
-├── server.js           # Express server and API endpoints
-├── migrate.js          # CSV to database migration script
-├── index.html          # Frontend web interface
-├── package.json        # Node.js dependencies and scripts
-├── tickets.csv         # Original CSV data
-├── tickets.db          # SQLite database (created after migration)
-├── CLAUDE.md          # Development documentation
-└── README.md          # This file
+├── server.js              # Express server and API endpoints
+├── migrate.js             # CSV to SQL Server migration script
+├── install-service.js     # Windows service installer
+├── uninstall-service.js   # Windows service uninstaller
+├── index.html             # Frontend web interface
+├── package.json           # Dependencies and scripts
+├── tickets.csv            # Source CSV data
+├── .env                   # DB connection settings (not committed)
+├── CLAUDE.md              # Developer notes
+└── README.md              # This file
 ```
 
 ## Database Schema
 
 ```sql
 CREATE TABLE tickets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source TEXT NOT NULL,
-    ticket TEXT NOT NULL,
-    date TEXT NOT NULL,
-    details TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    id         INT IDENTITY(1,1) PRIMARY KEY,
+    source     NVARCHAR(255) NOT NULL,
+    ticket     NVARCHAR(255) NOT NULL,
+    date       NVARCHAR(20)  NOT NULL,
+    details    NVARCHAR(MAX) NOT NULL,
+    status     NVARCHAR(20)  NOT NULL DEFAULT 'Open',
+    created_at DATETIME2     DEFAULT GETDATE()
 )
 ```
-
-## Development
-
-- The server automatically creates the database and tables on first run
-- Changes are persisted to `tickets.db`
-- The frontend makes API calls to the backend for all operations
-- CORS is enabled for development
 
 ## License
 
