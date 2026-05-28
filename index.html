@@ -254,6 +254,20 @@
             color: #555;
         }
 
+        .search-box {
+            padding: 6px 14px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 220px;
+        }
+
+        .search-box:focus {
+            border-color: #667eea;
+        }
+
         .filter-btn {
             padding: 6px 18px;
             font-size: 14px;
@@ -361,6 +375,7 @@
                     <button class="filter-btn active" onclick="setFilter('all')">All</button>
                     <button class="filter-btn" onclick="setFilter('open')">Open</button>
                     <button class="filter-btn" onclick="setFilter('closed')">Closed</button>
+                    <input type="text" id="searchBox" class="search-box" placeholder="Search tickets..." oninput="applyFilterAndSort()">
                 </div>
                 <div id="loadingIndicator" class="loading" style="display: none;">Loading tickets...</div>
                 <div class="table-container">
@@ -456,6 +471,18 @@
 
             if (statusFilter !== 'all') {
                 tickets = tickets.filter(t => (t.status || 'Open').toLowerCase() === statusFilter);
+            }
+
+            const query = (document.getElementById('searchBox')?.value || '').toLowerCase().trim();
+            if (query) {
+                tickets = tickets.filter(t =>
+                    String(t.id).includes(query) ||
+                    (t.source || '').toLowerCase().includes(query) ||
+                    (t.ticket || '').toLowerCase().includes(query) ||
+                    (t.date || '').toLowerCase().includes(query) ||
+                    (t.details || '').toLowerCase().includes(query) ||
+                    (t.status || '').toLowerCase().includes(query)
+                );
             }
 
             if (statusSort !== null) {
