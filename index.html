@@ -268,6 +268,21 @@
             border-color: #667eea;
         }
 
+        .source-select {
+            padding: 6px 14px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: auto;
+            cursor: pointer;
+        }
+
+        .source-select:focus {
+            border-color: #667eea;
+        }
+
         .filter-btn {
             padding: 6px 18px;
             font-size: 14px;
@@ -372,9 +387,12 @@
                 <h2>Current Tickets</h2>
                 <div class="filter-bar">
                     <span>Show:</span>
-                    <button class="filter-btn active" onclick="setFilter('all')">All</button>
-                    <button class="filter-btn" onclick="setFilter('open')">Open</button>
-                    <button class="filter-btn" onclick="setFilter('closed')">Closed</button>
+                    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+                    <button class="filter-btn" onclick="setFilter('open', this)">Open</button>
+                    <button class="filter-btn" onclick="setFilter('closed', this)">Closed</button>
+                    <select id="sourceFilter" class="source-select" onchange="applyFilterAndSort()">
+                        <option value="all">All Sources</option>
+                    </select>
                     <input type="text" id="searchBox" class="search-box" placeholder="Search tickets..." oninput="applyFilterAndSort()">
                 </div>
                 <div id="loadingIndicator" class="loading" style="display: none;">Loading tickets...</div>
@@ -423,6 +441,7 @@
 
                 const data = await response.json();
                 allTickets = data.tickets;
+                populateSourceFilter();
                 applyFilterAndSort();
                 document.getElementById('loadingIndicator').style.display = 'none';
             } catch (error) {
@@ -449,10 +468,24 @@
             }
         }
 
-        function setFilter(value) {
+        function populateSourceFilter() {
+            const select = document.getElementById('sourceFilter');
+            const current = select.value;
+            const sources = [...new Set(allTickets.map(t => (t.source || '').toLowerCase()).filter(Boolean))].sort();
+            select.innerHTML = '<option value="all">All Sources</option>';
+            sources.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                select.appendChild(opt);
+            });
+            if (sources.includes(current)) select.value = current;
+        }
+
+        function setFilter(value, btn) {
             statusFilter = value;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             applyFilterAndSort();
         }
 
@@ -471,6 +504,11 @@
 
             if (statusFilter !== 'all') {
                 tickets = tickets.filter(t => (t.status || 'Open').toLowerCase() === statusFilter);
+            }
+
+            const sourceVal = document.getElementById('sourceFilter')?.value || 'all';
+            if (sourceVal !== 'all') {
+                tickets = tickets.filter(t => (t.source || '').toLowerCase() === sourceVal);
             }
 
             const query = (document.getElementById('searchBox')?.value || '').toLowerCase().trim();
